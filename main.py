@@ -14,7 +14,7 @@ def rand(mn, mx, c, seed):
 	return [mn + random.random() * (mx - mn) for i in xrange(c)]
 
 
-# jednotky zap ouzitia gaussovej grav konsatnty k = 0.01720
+# all units in convention of Gauss grav. constant k = 0.01720
 # [M] = M_sun, [r] = AU, [v] = AU/d
 """
 lf = leapfrog.Leapfrog(m = [1.9891e30, 5.97219e24],
