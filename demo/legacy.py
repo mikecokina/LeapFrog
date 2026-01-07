@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from leapfrog.nbody import NBodySystem, integrate
-from leapfrog.viz import animate_trajectories_3d, show_animation
+from leapfrog.legacy.nbody import NBodySystem, integrate
+from leapfrog.legacy.viz import animate_trajectories_3d, show_animation
 
 
 @dataclass(slots=True)
