@@ -1,0 +1,265 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{physics}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{bm}
+\usepackage{listings}
+\usepackage{geometry}
+
+\geometry{margin=2.5cm}
+
+\title{N-body Gravitational Simulation Using the Leapfrog Integrator}
+\author{ }
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\newpage
+
+% ------------------------------------------------------------
+\section{Overview}
+
+This document describes a numerical N-body simulation of Newtonian gravitation using a leapfrog time integrator and vectorized NumPy implementation.
+
+The goals of the project are:
+
+\begin{itemize}
+\item Simulate gravitational motion of multiple bodies.
+\item Maintain long-term numerical stability.
+\item Use physically meaningful astronomical units.
+\item Provide real-time 3D visualization using Matplotlib.
+\end{itemize}
+
+The model is intended for educational and experimental purposes rather than precision ephemerides.
+
+% ------------------------------------------------------------
+\section{Physical Model}
+
+We model $N$ point masses interacting via Newtonian gravity.
+
+Let:
+
+\begin{itemize}
+\item $m_i$ be the mass of body $i$,
+\item $\bm{r}_i(t)$ be its position vector,
+\item $\bm{v}_i(t) = \dot{\bm{r}}_i(t)$ its velocity.
+\end{itemize}
+
+The equations of motion are:
+
+\begin{equation}
+\frac{d^2 \bm{r}_i}{dt^2}
+= - G \sum_{\substack{j=1 \\ j \ne i}}^N
+m_j \frac{\bm{r}_i - \bm{r}_j}{\lVert \bm{r}_i - \bm{r}_j \rVert^3}
+\end{equation}
+
+This yields a coupled system of $3N$ second-order ordinary differential equations.
+
+% ------------------------------------------------------------
+\section{Units and the Gaussian Gravitational Constant}
+
+The simulation uses astronomical units:
+
+\begin{itemize}
+\item Distance: astronomical unit (AU)
+\item Mass: solar mass ($M_\odot$)
+\item Time: day
+\item Velocity: AU/day
+\end{itemize}
+
+Instead of using the SI gravitational constant, we use the Gaussian gravitational constant:
+
+\begin{equation}
+k = 0.01720209895
+\end{equation}
+
+The gravitational constant becomes:
+
+\begin{equation}
+G = k^2 \approx 2.9591220829 \times 10^{-4}
+\end{equation}
+
+This choice ensures that a body at 1 AU orbiting a 1 solar mass object has a period close to 365 days automatically.
+
+In these units, Newton's equation becomes numerically well-scaled and avoids extremely large or small floating-point values.
+
+% ------------------------------------------------------------
+\section{Vectorized Formulation}
+
+We define:
+
+\begin{align}
+\bm{r} &= [\bm{r}_1, \bm{r}_2, \ldots, \bm{r}_N] \in \mathbb{R}^{N \times 3} \\
+\bm{m} &= [m_1, m_2, \ldots, m_N] \in \mathbb{R}^N
+\end{align}
+
+Define the pairwise displacement tensor:
+
+\begin{equation}
+\bm{D}_{ij} = \bm{r}_i - \bm{r}_j
+\end{equation}
+
+The squared distance matrix:
+
+\begin{equation}
+R_{ij}^2 = \bm{D}_{ij} \cdot \bm{D}_{ij}
+\end{equation}
+
+To avoid self-interaction:
+
+\begin{equation}
+R_{ii}^2 \rightarrow \infty
+\end{equation}
+
+Optionally, a softening parameter $\epsilon$ may be added:
+
+\begin{equation}
+R_{ij}^2 \rightarrow R_{ij}^2 + \epsilon^2
+\end{equation}
+
+The acceleration for each body is computed as:
+
+\begin{equation}
+\bm{a}_i = -G \sum_{j=1}^N m_j
+\frac{\bm{D}_{ij}}{(R_{ij}^2)^{3/2}}
+\end{equation}
+
+This formulation is implemented efficiently using NumPy broadcasting.
+
+% ------------------------------------------------------------
+\section{Leapfrog Integrator}
+
+The leapfrog method is a second-order symplectic integrator.
+
+It advances positions and velocities in a staggered fashion, preserving energy much better than Euler integration for long-term simulations.
+
+Let:
+
+\begin{itemize}
+\item $\bm{r}_n$ be the position at time $t_n$,
+\item $\bm{v}_n$ be the velocity at time $t_n$,
+\item $\bm{a}_n = \bm{a}(\bm{r}_n)$ be the acceleration.
+\end{itemize}
+
+The kick-drift-kick formulation:
+
+\begin{align}
+\bm{v}_{n+\frac{1}{2}} &= \bm{v}_n + \frac{\Delta t}{2} \bm{a}_n \\
+\bm{r}_{n+1} &= \bm{r}_n + \Delta t \bm{v}_{n+\frac{1}{2}} \\
+\bm{a}_{n+1} &= \bm{a}(\bm{r}_{n+1}) \\
+\bm{v}_{n+1} &= \bm{v}_{n+\frac{1}{2}} + \frac{\Delta t}{2} \bm{a}_{n+1}
+\end{align}
+
+This scheme is:
+
+\begin{itemize}
+\item Time-reversible
+\item Symplectic
+\item Second-order accurate in time
+\item Stable for orbital dynamics
+\end{itemize}
+
+% ------------------------------------------------------------
+\section{Relation to the Original Implementation}
+
+In the original student implementation, the variables correspond to:
+
+\begin{center}
+\begin{tabular}{|c|c|}
+\hline
+Original Variable & Mathematical Meaning \\
+\hline
+\texttt{r\_zero} & $\bm{r}_n$ \\
+\texttt{v\_zero} & $\bm{v}_n$ \\
+\texttt{v\_overline} & $\bm{v}_{n+1/2}$ \\
+\texttt{r\_actual} & $\bm{r}_{n+1}$ \\
+\texttt{v\_actual} & $\bm{v}_{n+1}$ \\
+\hline
+\end{tabular}
+\end{center}
+
+Although written differently, the algorithm is mathematically identical to the leapfrog scheme.
+
+% ------------------------------------------------------------
+\section{Numerical Properties}
+
+Important properties:
+
+\begin{itemize}
+\item Energy oscillates but does not drift systematically.
+\item Angular momentum is well conserved for reasonable time steps.
+\item Stability depends on time step size relative to orbital period.
+\end{itemize}
+
+Typical guideline:
+
+\begin{equation}
+\Delta t \ll T_{\text{orbital}}
+\end{equation}
+
+Too large a step leads to phase errors and orbit distortion.
+
+% ------------------------------------------------------------
+\section{Computational Complexity}
+
+The acceleration computation scales as:
+
+\begin{equation}
+O(N^2)
+\end{equation}
+
+This is acceptable for small $N$ (10 to 100 bodies) but becomes expensive for large systems.
+
+Possible future optimizations:
+
+\begin{itemize}
+\item Barnes-Hut tree algorithm
+\item Fast multipole method
+\item GPU acceleration
+\end{itemize}
+
+% ------------------------------------------------------------
+\section{Visualization}
+
+Positions are stored as:
+
+\begin{equation}
+\texttt{positions} \in \mathbb{R}^{(N_{\text{steps}}, N, 3)}
+\end{equation}
+
+Matplotlib's \texttt{FuncAnimation} updates point markers and optional trails in 3D space.
+
+Important implementation notes:
+
+\begin{itemize}
+\item The animation object must be kept alive to avoid garbage collection.
+\item Blitting is disabled for 3D plots.
+\item Axis bounds are precomputed from the full trajectory.
+\end{itemize}
+
+% ------------------------------------------------------------
+\section{Possible Extensions}
+
+Natural extensions include:
+
+\begin{itemize}
+\item Energy and momentum diagnostics
+\item Adaptive time stepping
+\item Collision handling or merging
+\item Relativistic corrections
+\item GPU acceleration using CuPy
+\end{itemize}
+
+% ------------------------------------------------------------
+\section{Conclusion}
+
+The leapfrog integrator provides a robust and physically faithful method for simulating gravitational systems.
+
+Using normalized astronomical units and vectorized computation yields clean, stable, and performant simulations suitable for experimentation and visualization.
+
+\end{document}
