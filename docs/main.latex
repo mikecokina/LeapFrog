@@ -186,6 +186,79 @@ Original Variable & Mathematical Meaning \\
 Although written differently, the algorithm is mathematically identical to the leapfrog scheme.
 
 % ------------------------------------------------------------
+\section{Center-of-Mass Reference Frame}
+
+\subsection{Definition}
+
+For a system of $N$ bodies, the center-of-mass (COM) position and velocity are defined as:
+
+\begin{align}
+\bm{R}_{\mathrm{cm}} &= \frac{1}{M} \sum_{i=1}^N m_i \bm{r}_i, \\
+\bm{V}_{\mathrm{cm}} &= \frac{1}{M} \sum_{i=1}^N m_i \bm{v}_i,
+\end{align}
+
+where:
+
+\begin{equation}
+M = \sum_{i=1}^N m_i
+\end{equation}
+
+is the total mass.
+
+In the absence of external forces, total momentum is conserved and the center of mass moves with constant velocity.
+
+Transforming into the COM frame removes this trivial translational motion.
+
+\subsection{Coordinate Transformation}
+
+The transformation into COM coordinates is:
+
+\begin{align}
+\bm{r}_i' &= \bm{r}_i - \bm{R}_{\mathrm{cm}}, \\
+\bm{v}_i' &= \bm{v}_i - \bm{V}_{\mathrm{cm}}.
+\end{align}
+
+This is a Galilean transformation and does not change the internal dynamics of the system.
+
+All relative distances and forces remain invariant.
+
+\subsection{Motivation}
+
+Working in the COM frame provides several advantages:
+
+\begin{itemize}
+\item The system remains centered in visualization.
+\item Numerical drift of total momentum becomes visible.
+\item Symmetries of multi-body motion are easier to interpret.
+\item Comparisons between simulations become more consistent.
+\end{itemize}
+
+This is especially important for systems without a dominant central mass, such as general three-body or N-body problems.
+
+% ------------------------------------------------------------
+\section{Relation to the Original Code}
+
+The original student implementation implicitly evolved the system in an inertial frame and did not explicitly normalize the center of mass.
+
+However, because Newtonian gravity conserves total momentum, the center of mass ideally follows uniform linear motion.
+
+In practice, small floating-point errors may lead to slow drift of the center of mass in long simulations, which can be visually confusing.
+
+The updated implementation introduces explicit center-of-mass handling:
+
+\begin{itemize}
+\item Initial conditions may be shifted so that:
+\[
+\bm{R}_{\mathrm{cm}}(t=0) = 0, \quad
+\bm{V}_{\mathrm{cm}}(t=0) = 0.
+\]
+\item Recorded trajectories can be transformed into the COM frame for visualization.
+\item This transformation preserves all internal dynamics and conserved quantities.
+\end{itemize}
+
+This enhancement improves numerical robustness and interpretability while remaining fully compatible with the original physical model and integrator.
+
+% ------------------------------------------------------------
 \section{Numerical Properties}
 
 Important properties:
@@ -240,6 +313,7 @@ Important implementation notes:
 \item The animation object must be kept alive to avoid garbage collection.
 \item Blitting is disabled for 3D plots.
 \item Axis bounds are precomputed from the full trajectory.
+\item Optional transformation into the center-of-mass frame improves visual clarity.
 \end{itemize}
 
 % ------------------------------------------------------------
@@ -260,6 +334,6 @@ Natural extensions include:
 
 The leapfrog integrator provides a robust and physically faithful method for simulating gravitational systems.
 
-Using normalized astronomical units and vectorized computation yields clean, stable, and performant simulations suitable for experimentation and visualization.
+Using normalized astronomical units, vectorized computation, and explicit center-of-mass handling yields clean, stable, and performant simulations suitable for experimentation and visualization.
 
 \end{document}
